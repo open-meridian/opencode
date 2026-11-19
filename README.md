@@ -1,3 +1,15 @@
+> **This is Open Meridian's fork of [OpenCode](https://github.com/anomalyco/opencode)**, showing OpenCode working with
+> [Open Meridian](https://open-meridian.dev). Our changes are on this branch (`open-meridian`); the `dev`
+> branch tracks upstream unchanged.
+>
+> OpenCode as an agent connected to an Open Meridian deployment's tools, acting only within the access a person delegates to it.
+>
+> **Status:** the integration isn't built yet. When it is, this section says how to run it locally against an Open
+> Meridian deployment. It isn't listed in Open Meridian's plugin registry.
+>
+> OpenCode is licensed under MIT; this fork keeps that licence and its notices. It is not affiliated with or
+> endorsed by OpenCode's authors.
+
 <p align="center">
   <a href="https://opencode.ai">
     <picture>
