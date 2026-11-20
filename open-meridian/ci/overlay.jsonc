@@ -1,0 +1,33 @@
+// What CI adds to the example workspace, as WORK/.opencode/opencode.jsonc:
+// the CI deployment's address (plain HTTP, at a name under .localhost, which
+// resolves to this machine) and the scripted model in place of a real one.
+// Nothing here loosens the example's permission rules.
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "servers": {
+      "meridian": {
+        "type": "remote",
+        "url": "http://meridian.localhost/mcp",
+        "codemode": false,
+      },
+    },
+  },
+  "providers": {
+    "scripted": {
+      "name": "Scripted model",
+      "env": ["SCRIPTED_MODEL_KEY"],
+      "package": "@opencode/ai/providers/openai-compatible",
+      "settings": {
+        "baseURL": "http://127.0.0.1:18081/v1",
+      },
+      "models": {
+        "flow": {
+          "name": "Scripted flow",
+          "capabilities": { "tools": true },
+        },
+      },
+    },
+  },
+  "model": "scripted/flow",
+}
