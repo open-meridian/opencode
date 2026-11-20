@@ -37,10 +37,15 @@ env:
 
 jobs:
   agent:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Paths, names and licences in what we add
+        run: |
+          git fetch --no-tags --depth=1 origin open-meridian
+          BASE_REF=FETCH_HEAD open-meridian/ci/checks.sh
 
       - name: Bun, and the workspace's dependencies
         uses: ./.github/actions/setup-bun
@@ -50,6 +55,10 @@ jobs:
         run: |
           bun run script/build.ts --single --skip-install
           echo "OPENCODE=$PWD/dist/cli-linux-x64/bin/opencode" >>"$GITHUB_ENV"
+
+      - name: The one upstream line we change, the client's name, by upstream's own test
+        working-directory: packages/core
+        run: bun test test/mcp-oauth.test.ts
 
       - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5.6.0
         with:
@@ -117,6 +126,51 @@ jobs:
           print(f"the scripted model was offered {len(deployment)} deployment tools")
           assert any(t.endswith("dashboard__list_prepared") for t in deployment), deployment
           PY
+
+      - name: "The credential store is its owner's alone"
+        run: |
+          found=0
+          while IFS= read -r -d '' db; do
+            found=1
+            mode="$(stat -c '%a' "$db")"
+            echo "$(basename "$db"): mode $mode"
+            [ "$mode" = 600 ] || { echo "the fork's database is readable by others (mode $mode)" >&2; exit 1; }
+          done < <(find "$HOME" -type f \( -name '*.db' -o -name '*.sqlite' \) -print0)
+          [ "$found" = 1 ] || { echo "no credential store found under the person's home" >&2; exit 1; }
+
+      # The order step (optional): it needs a plugin holding `portfolio`,
+      # built from a repository named by the variable ORDER_PLUGIN_REPOSITORY
+      # and read with the secret ORDER_PLUGIN_READ_TOKEN. Without them it is
+      # skipped, with a notice; nothing else depends on it.
+      - name: "Order step: is its plugin available?"
+        id: order
+        env:
+          TOKEN_GIVEN: ${{ secrets.ORDER_PLUGIN_READ_TOKEN != '' }}
+          REPOSITORY: ${{ vars.ORDER_PLUGIN_REPOSITORY }}
+        run: |
+          if [ "$TOKEN_GIVEN" = true ] && [ -n "$REPOSITORY" ]; then
+            echo "run=true" >>"$GITHUB_OUTPUT"
+          else
+            echo "::notice title=Order step skipped::No ORDER_PLUGIN_READ_TOKEN secret or ORDER_PLUGIN_REPOSITORY variable here, so the order step does not run. It needs a plugin holding portfolio."
+          fi
+
+      - name: "Order step: the plugin's source"
+        if: steps.order.outputs.run == 'true'
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          repository: ${{ vars.ORDER_PLUGIN_REPOSITORY }}
+          token: ${{ secrets.ORDER_PLUGIN_READ_TOKEN }}
+          path: order-plugin
+          persist-credentials: false
+
+      - name: "Order step: its image, built as its own CI builds it, in the cluster"
+        if: steps.order.outputs.run == 'true'
+        working-directory: order-plugin
+        run: |
+          make image IMAGE=order-plugin:ci
+          k3d image import order-plugin:ci --cluster p1-agent
+          echo "::notice title=Order step::The plugin's image is in the cluster. Launching it and the order flow are not written yet."
+          exit 1
 
       - name: What the deployment and the runs said, when a step failed
         if: failure()
