@@ -1,0 +1,40 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  // One Open Meridian deployment, as one remote MCP server. Put your
+  // deployment's address here; a laptop deployment is at meridian.localhost.
+  // No credential goes in this file: OpenCode signs you in through the
+  // deployment's own page, in your browser, the first time it connects
+  // (`opencode mcp auth meridian`), and keeps the tokens in its own store.
+  "mcp": {
+    "servers": {
+      "meridian": {
+        "type": "remote",
+        "url": "https://meridian.localhost/mcp",
+        // Each deployment tool is its own call, with its own permission
+        // decision, as the deployment records it.
+        "codemode": false,
+      },
+    },
+  },
+  "default_agent": "meridian",
+  // The last matching rule wins. With no matching rule OpenCode asks.
+  "permissions": [
+    // Every deployment tool asks first...
+    { "action": "meridian_*", "resource": "*", "effect": "ask" },
+    // ...except reads and checks, which change nothing.
+    { "action": "meridian_*__read_*", "resource": "*", "effect": "allow" },
+    { "action": "meridian_*__list_*", "resource": "*", "effect": "allow" },
+    { "action": "meridian_*__check_*", "resource": "*", "effect": "allow" },
+    { "action": "meridian_*__find_*", "resource": "*", "effect": "allow" },
+    { "action": "meridian_*__search_*", "resource": "*", "effect": "allow" },
+    { "action": "meridian_*__count_*", "resource": "*", "effect": "allow" },
+    { "action": "meridian_dashboard__query_lake", "resource": "*", "effect": "allow" },
+    // Order acts are prepared for a person to make, never made directly:
+    // the agent checks the act, then prepares it (dashboard__prepare_call,
+    // which asks you first).
+    { "action": "meridian_*__propose_order", "resource": "*", "effect": "deny" },
+    { "action": "meridian_*__release_order", "resource": "*", "effect": "deny" },
+    { "action": "meridian_*__create_placement", "resource": "*", "effect": "deny" },
+    { "action": "meridian_dashboard__make_prepared", "resource": "*", "effect": "deny" },
+  ],
+}
